@@ -13,6 +13,10 @@ router = APIRouter(prefix="/patients", tags=["patients"])
 
 @router.post("/", response_model=Patient)
 def create_patient(patient_in: PatientCreate, db: Session = Depends(get_db)):
+    existing_patient = db.query(PatientModel).filter(PatientModel.email == patient_in.email).first()
+    if existing_patient:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
     hashed_password = hash_password(patient_in.password)
     patient = PatientModel(**patient_in.dict(exclude={"password"}), password=hashed_password)
     db.add(patient)

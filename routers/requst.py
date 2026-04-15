@@ -42,6 +42,17 @@ def create_help_request(hr_in: HelpRequestCreate, db: Session = Depends(get_db))
     if not doctor:
         raise HTTPException(status_code=400, detail="Invalid doctor_id")
 
+    if hr_in.final_date and hr_in.final_date < hr_in.request_date:
+        raise HTTPException(status_code=400, detail="Final date cannot be earlier than request date")
+        
+    existing_request = db.query(HelpRequestModel).filter(
+        HelpRequestModel.patient_id == hr_in.patient_id,
+        HelpRequestModel.doctor_id == hr_in.doctor_id,
+        HelpRequestModel.status.in_(["pending", "accepted"])
+    ).first()
+    if existing_request:
+        raise HTTPException(status_code=400, detail="Patient already has an active request to this doctor")
+
     help_request = HelpRequestModel(**hr_in.dict())
     db.add(help_request)
     db.commit()
